@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeftRight, Copy, Check, Scale } from 'lucide-react';
+import { ArrowLeftRight, Copy, Check, Scale, ListOrdered, ChevronDown, ChevronUp } from 'lucide-react';
 import { UnitCategory } from '../types';
 import { UNIT_CATEGORIES, UNITS, convertUnit } from '../utils/unitData';
 
@@ -12,6 +12,8 @@ export const ConverterMode: React.FC = () => {
 
   const [inputValue, setInputValue] = useState<string>('1');
   const [copied, setCopied] = useState(false);
+  const [showProcedure, setShowProcedure] = useState<boolean>(true);
+  const [copiedProc, setCopiedProc] = useState(false);
 
   // Handle category switch
   const handleCategoryChange = (newCat: UnitCategory) => {
@@ -29,15 +31,32 @@ export const ConverterMode: React.FC = () => {
   };
 
   const parsedInput = parseFloat(inputValue);
-  const converted = isNaN(parsedInput) ? 0 : convertUnit(parsedInput, category, fromUnit, toUnit);
+  const safeInput = isNaN(parsedInput) ? 0 : parsedInput;
+  const converted = convertUnit(safeInput, category, fromUnit, toUnit);
 
   const fromDef = availableUnits.find(u => u.id === fromUnit);
   const toDef = availableUnits.find(u => u.id === toUnit);
+  const baseDef = availableUnits[0]; // First element is typically the base unit (e.g., m, kg, °C, Pa, J, m/s, B)
+
+  // Intermediate base value
+  const baseValue = fromDef ? fromDef.toBase(safeInput) : 0;
+  const unitEquivalence = convertUnit(1, category, fromUnit, toUnit);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(`${converted}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  const handleCopyProcedure = () => {
+    const procText = `Procedimiento de Conversión de ${category}:\n` +
+      `1. Valor inicial: ${safeInput} ${fromDef?.symbol} (${fromDef?.name})\n` +
+      `2. Conversión a unidad base (${baseDef?.name}): ${baseValue} ${baseDef?.symbol}\n` +
+      `3. Conversión final: ${converted} ${toDef?.symbol} (${toDef?.name})\n` +
+      `Factor: 1 ${fromDef?.symbol} = ${unitEquivalence} ${toDef?.symbol}`;
+    navigator.clipboard.writeText(procText);
+    setCopiedProc(true);
+    setTimeout(() => setCopiedProc(false), 1500);
   };
 
   return (
@@ -168,6 +187,78 @@ export const ConverterMode: React.FC = () => {
                 );
               })}
           </div>
+        </div>
+
+        {/* Step-by-Step Procedure Card */}
+        <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col gap-3 mt-2">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="flex items-center gap-2 text-xs font-semibold text-cyan-300">
+              <ListOrdered className="w-4 h-4 text-cyan-400" />
+              <span>Procedimiento Paso a Paso: Conversión Dimensional</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopyProcedure}
+                className="text-[11px] text-slate-400 hover:text-cyan-400 flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                {copiedProc ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedProc ? 'Copiado' : 'Copiar pasos'}</span>
+              </button>
+              <button
+                onClick={() => setShowProcedure(!showProcedure)}
+                className="p-1 rounded text-slate-400 hover:text-slate-200 cursor-pointer"
+                title={showProcedure ? 'Ocultar' : 'Mostrar'}
+              >
+                {showProcedure ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {showProcedure && (
+            <div className="space-y-2.5 text-xs text-slate-300 pt-1">
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="font-semibold text-cyan-400">Paso 1: Identificación de la magnitud y unidades</span>
+                <p className="mt-1 font-mono text-slate-200">
+                  Magnitud: {category.toUpperCase()} | Valor inicial: {safeInput} {fromDef?.symbol} ({fromDef?.name})
+                </p>
+                <p className="mt-0.5 text-slate-400 text-[11px]">
+                  Unidad destino deseada: {toDef?.name} ({toDef?.symbol}).
+                </p>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="font-semibold text-cyan-400">Paso 2: Conversión a la unidad base del Sistema Internacional ({baseDef?.symbol})</span>
+                <p className="mt-1 font-mono text-slate-200">
+                  {fromDef?.name} → {baseDef?.name}: {safeInput} {fromDef?.symbol} = {baseValue.toLocaleString('es-ES', { maximumFractionDigits: 8 })} {baseDef?.symbol}
+                </p>
+                <p className="mt-0.5 text-slate-400 text-[11px]">
+                  El cálculo se normaliza a través de la unidad patrón estándar ({baseDef?.name}).
+                </p>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="font-semibold text-cyan-400">Paso 3: Transformación dimensional a la unidad final ({toDef?.symbol})</span>
+                <p className="mt-1 font-mono text-slate-200">
+                  {baseValue.toLocaleString('es-ES', { maximumFractionDigits: 8 })} {baseDef?.symbol} → {converted.toLocaleString('es-ES', { maximumFractionDigits: 8 })} {toDef?.symbol}
+                </p>
+                <p className="mt-0.5 text-slate-400 text-[11px]">
+                  Equivalencia directa: 1 {fromDef?.symbol} = {unitEquivalence.toLocaleString('es-ES', { maximumFractionDigits: 8 })} {toDef?.symbol}.
+                </p>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="font-semibold text-cyan-400">Paso 4: Resultado final</span>
+                <p className="mt-1 font-mono text-emerald-300 font-bold text-sm">
+                  {safeInput} {fromDef?.symbol} = {converted.toLocaleString('es-ES', { maximumFractionDigits: 8 })} {toDef?.symbol}
+                </p>
+                {Math.abs(converted) >= 1e6 || (Math.abs(converted) > 0 && Math.abs(converted) < 1e-4) ? (
+                  <p className="mt-0.5 text-slate-400 text-[11px] font-mono">
+                    Notación científica: {converted.toExponential(6)} {toDef?.symbol}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check, CornerDownLeft } from 'lucide-react';
+import { Copy, Check, CornerDownLeft, ListOrdered } from 'lucide-react';
 import { AngleUnit, NumberFormat } from '../types';
 
 interface DisplayProps {
@@ -16,6 +16,8 @@ interface DisplayProps {
   isError: boolean;
   errorMessage?: string;
   onInsertAns: () => void;
+  onOpenStepByStep?: () => void;
+  hasProcedure?: boolean;
 }
 
 export const Display: React.FC<DisplayProps> = ({
@@ -31,6 +33,8 @@ export const Display: React.FC<DisplayProps> = ({
   onCycleNumberFormat,
   isError,
   errorMessage,
+  onOpenStepByStep,
+  hasProcedure,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -145,7 +149,22 @@ export const Display: React.FC<DisplayProps> = ({
           </div>
         ) : null}
 
-        <div className="w-full flex items-center justify-end overflow-x-auto scrollbar-none">
+        <div className="w-full flex items-center justify-between gap-2 overflow-x-auto scrollbar-none pt-1">
+          {/* Step-by-Step Procedure Trigger Button */}
+          {hasProcedure && onOpenStepByStep && !isError ? (
+            <button
+              id="view-step-by-step-btn"
+              onClick={onOpenStepByStep}
+              title="Ver el procedimiento matemático paso a paso"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 transition-all shadow-xs shrink-0 cursor-pointer animate-in fade-in"
+            >
+              <ListOrdered className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Ver Pasos</span>
+            </button>
+          ) : (
+            <div />
+          )}
+
           <span
             id="calculator-result-text"
             className={`font-mono text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight select-all ${

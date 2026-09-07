@@ -289,41 +289,104 @@ export function solveQuadratic(a: number, b: number, c: number): {
   }
 }
 
+// Detailed Newton Iteration step
+export interface NewtonIterationStep {
+  iteration: number;
+  x_n: number;
+  fx: number;
+  dfx: number;
+  deltaX: number;
+  x_next: number;
+  error: number;
+}
+
 // Solver: Newton-Raphson method for root of f(x) = 0 starting from x0
 export function solveNewtonRaphson(
   expr: string, 
   initialGuess: number, 
-  maxIterations = 50, 
+  maxIterations = 20, 
   tolerance = 1e-7
-): { root: number | null; iterations: number; converged: boolean; error?: string } {
+): { root: number | null; iterations: number; converged: boolean; error?: string; steps: NewtonIterationStep[] } {
   const sanitized = preprocessExpression(expr);
   let x = initialGuess;
   const scope = createScopeWithAngleUnit('RAD');
+  const steps: NewtonIterationStep[] = [];
   
   try {
     const compiled = mathInstance.compile(sanitized);
 
     for (let i = 0; i < maxIterations; i++) {
       const fx = compiled.evaluate({ ...scope, x });
-      if (Math.abs(fx) < tolerance) {
-        return { root: x, iterations: i, converged: true };
-      }
-
-      // Derivative using central difference
       const dfx = computeDerivative(expr, x);
+
       if (Math.abs(dfx) < 1e-12) {
-        return { root: null, iterations: i, converged: false, error: 'Derivada cercana a cero (la pendiente se anula).' };
+        return { 
+          root: null, 
+          iterations: i, 
+          converged: false, 
+          error: 'Derivada cercana a cero (la pendiente de la recta tangente se anula en este punto).',
+          steps 
+        };
       }
 
-      const nextX = x - fx / dfx;
-      if (Math.abs(nextX - x) < tolerance) {
-        return { root: nextX, iterations: i + 1, converged: true };
+      const deltaX = fx / dfx;
+      const nextX = x - deltaX;
+      const err = Math.abs(nextX - x);
+
+      steps.push({
+        iteration: i + 1,
+        x_n: x,
+        fx,
+        dfx,
+        deltaX,
+        x_next: nextX,
+        error: err,
+      });
+
+      if (Math.abs(fx) < tolerance || err < tolerance) {
+        return { root: nextX, iterations: i + 1, converged: true, steps };
       }
+
       x = nextX;
     }
 
-    return { root: x, iterations: maxIterations, converged: false, error: 'Se alcanzó el límite de iteraciones sin converger.' };
+    return { 
+      root: x, 
+      iterations: maxIterations, 
+      converged: false, 
+      error: 'Se alcanzó el límite de iteraciones sin alcanzar la tolerancia requerida.',
+      steps 
+    };
   } catch (err: unknown) {
-    return { root: null, iterations: 0, converged: false, error: err instanceof Error ? err.message : 'Error al evaluar' };
+    return { 
+      root: null, 
+      iterations: 0, 
+      converged: false, 
+      error: err instanceof Error ? err.message : 'Error al evaluar la función',
+      steps 
+    };
+  }
+}
+
+// Symbolic derivative helper using mathjs
+export function computeSymbolicDerivative(expr: string, variable = 'x'): string {
+  try {
+    const sanitized = preprocessExpression(expr);
+    const node = mathInstance.parse(sanitized);
+    const d = mathInstance.derivative(node, variable);
+    return mathInstance.simplify(d).toString();
+  } catch {
+    return '';
+  }
+}
+
+// Algebraic simplify helper using mathjs
+export function simplifyAlgebraic(expr: string): string {
+  try {
+    const sanitized = preprocessExpression(expr);
+    const node = mathInstance.parse(sanitized);
+    return mathInstance.simplify(node).toString();
+  } catch {
+    return expr;
   }
 }

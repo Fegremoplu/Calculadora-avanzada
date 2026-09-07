@@ -36,3 +36,37 @@ export interface UnitDefinition {
   toBase: (val: number) => number;
   fromBase: (val: number) => number;
 }
+
+export type StepCategory =
+  | 'parenthesis'
+  | 'constant'
+  | 'function'
+  | 'trigonometry'
+  | 'power'
+  | 'percentage'
+  | 'multiplication'
+  | 'division'
+  | 'addition'
+  | 'subtraction'
+  | 'fraction'
+  | 'general';
+
+export interface CalculationStep {
+  stepNumber: number;
+  title: string;
+  subExpression?: string;
+  before: string;
+  after: string;
+  explanation: string;
+  category: StepCategory;
+}
+
+export interface StepProcedure {
+  originalExpression: string;
+  finalResult: string;
+  angleUnit: AngleUnit;
+  steps: CalculationStep[];
+  rulesSummary: string[];
+  fractionForm?: string;
+}
+

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, X, Clock, ArrowUpRight, Copy, Download } from 'lucide-react';
+import { Trash2, X, Clock, ArrowUpRight, Copy, Download, ListOrdered } from 'lucide-react';
 import { HistoryItem } from '../types';
 
 interface HistoryDrawerProps {
@@ -9,6 +9,7 @@ interface HistoryDrawerProps {
   onSelectExpression: (expr: string) => void;
   onSelectResult: (res: string) => void;
   onClearHistory: () => void;
+  onViewStepByStep?: (item: HistoryItem) => void;
 }
 
 export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
@@ -18,6 +19,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
   onSelectExpression,
   onSelectResult,
   onClearHistory,
+  onViewStepByStep,
 }) => {
   if (!isOpen) return null;
 
@@ -115,7 +117,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                   <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-cyan-400 transition-opacity shrink-0" />
                 </div>
 
-                {/* Result */}
+                {/* Result & Actions */}
                 <div className="flex items-center justify-between pt-1 border-t border-slate-800/60">
                   <span
                     onClick={() => onSelectResult(item.result)}
@@ -124,15 +126,27 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                   >
                     = {item.result}
                   </span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(item.result);
-                    }}
-                    title="Copiar resultado"
-                    className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {onViewStepByStep && (
+                      <button
+                        onClick={() => onViewStepByStep(item)}
+                        title="Ver procedimiento paso a paso de este cálculo"
+                        className="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 transition-colors"
+                      >
+                        <ListOrdered className="w-3 h-3" />
+                        <span>Pasos</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(item.result);
+                      }}
+                      title="Copiar resultado"
+                      className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))

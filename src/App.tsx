@@ -17,7 +17,10 @@ import { ProgrammerMode } from './components/ProgrammerMode';
 import { ConverterMode } from './components/ConverterMode';
 import { HelpModal } from './components/HelpModal';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
+import { StepByStepModal } from './components/StepByStepModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { generateStepByStepProcedure } from './utils/stepSolver';
+import { StepProcedure } from './types';
 import { User } from 'firebase/auth';
 import {
   initAuthListener,
@@ -63,6 +66,20 @@ export default function App() {
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [livePreview, setLivePreview] = useState<string | null>(null);
+
+  // Step-by-Step procedure state
+  const [lastCalculatedExpression, setLastCalculatedExpression] = useState<string>('');
+  const [isStepModalOpen, setIsStepModalOpen] = useState(false);
+  const [currentProcedure, setCurrentProcedure] = useState<StepProcedure | null>(null);
+
+  const handleOpenStepByStep = (targetExpr?: string, targetAngle?: AngleUnit) => {
+    const exprToSolve = targetExpr || expression || lastCalculatedExpression;
+    if (!exprToSolve) return;
+    const unit = targetAngle || angleUnit;
+    const proc = generateStepByStepProcedure(exprToSolve, unit);
+    setCurrentProcedure(proc);
+    setIsStepModalOpen(true);
+  };
 
   // Firebase Auth and Cloud Sync state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -182,6 +199,7 @@ export default function App() {
 
   const handleClear = () => {
     setExpression('');
+    setLastCalculatedExpression('');
     setResult('0');
     setNumericResult(0);
     setIsError(false);
@@ -213,6 +231,7 @@ export default function App() {
     }
 
     setResult(displayFormatted);
+    setLastCalculatedExpression(expression);
 
     // Save to history
     const newItem: HistoryItem = {
@@ -318,7 +337,7 @@ export default function App() {
           <div className="w-full max-w-3xl mx-auto flex flex-col gap-3">
             {/* Display Screen */}
             <Display
-              expression={expression}
+              expression={expression || lastCalculatedExpression}
               result={result}
               livePreview={livePreview}
               angleUnit={angleUnit}
@@ -331,6 +350,8 @@ export default function App() {
               isError={isError}
               errorMessage={errorMessage}
               onInsertAns={() => handleInsert('Ans')}
+              hasProcedure={Boolean((expression || lastCalculatedExpression) && result && result !== 'Error')}
+              onOpenStepByStep={() => handleOpenStepByStep()}
             />
 
             {/* Scientific Keypad */}
@@ -405,10 +426,21 @@ export default function App() {
           setIsHistoryOpen(false);
           setActiveTab('scientific');
         }}
+        onViewStepByStep={item => {
+          handleOpenStepByStep(item.expression, item.angleUnit);
+          setIsHistoryOpen(false);
+        }}
         onClearHistory={() => {
           clearAllHistoryFromCloud(history);
           setHistory([]);
         }}
+      />
+
+      {/* Step-by-Step Procedure Modal */}
+      <StepByStepModal
+        isOpen={isStepModalOpen}
+        onClose={() => setIsStepModalOpen(false)}
+        procedure={currentProcedure}
       />
 
       {/* Help & Shortcuts Modal */}
@@ -430,17 +462,8 @@ export default function App() {
             onClick={() => setIsPrivacyOpen(true)}
             className="hover:text-cyan-400 underline underline-offset-2 transition-colors cursor-pointer"
           >
-            Política de Privacidad (Google Play)
+            Política de Privacidad
           </button>
-          <span className="text-slate-700">•</span>
-          <a
-            href="/privacy.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-cyan-400 transition-colors"
-          >
-            Página Web Pública
-          </a>
         </div>
       </footer>
     </div>
