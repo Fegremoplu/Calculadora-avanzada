@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidUserPreference(data, userId) {
+      return data.uid == userId &&
+             data.angleUnit in ['DEG', 'RAD', 'GRAD'] &&
+             data.numberFormat in ['standard', 'scientific', 'fraction'] &&
+             data.soundEnabled is bool &&
+             data.updatedAt is number;
+    }
+
+    function isValidCalculationHistory(data, userId) {
+      return data.userId == userId &&
+             data.id is string &&
+             data.expression is string &&
+             data.expression.size() <= 500 &&
+             data.result is string &&
+             data.result.size() <= 500 &&
+             data.angleUnit in ['DEG', 'RAD', 'GRAD'] &&
+             data.timestamp is number;
+    }
+
+    function isValidCustomFormula(data, userId) {
+      return data.userId == userId &&
+             data.id is string &&
+             data.name is string &&
+             data.name.size() <= 100 &&
+             data.expression is string &&
+             data.expression.size() <= 500 &&
+             data.type in ['2d', '3d'] &&
+             data.createdAt is number;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserPreference(request.resource.data, userId);
+      allow update: if isOwner(userId) && isValidUserPreference(request.resource.data, userId);
+      allow delete: if isOwner(userId);
+
+      match /history/{historyId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidCalculationHistory(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidCalculationHistory(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /formulas/{formulaId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidCustomFormula(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidCustomFormula(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

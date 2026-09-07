@@ -119,6 +119,24 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
               </p>
             </div>
           </section>
+
+          {/* Privacidad y Acceso con Cuenta de Google */}
+          <section className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div className="flex items-center gap-1.5 text-cyan-400 font-semibold mb-2">
+              <span>Privacidad y Acceso Seguro con Google</span>
+            </div>
+            <div className="space-y-2 text-slate-400">
+              <p>
+                <strong className="text-slate-200">Cero Acceso a Datos Personales:</strong> Al iniciar sesión con tu cuenta de Google, únicamente solicitamos tu nombre, correo y foto pública básica para identificar tu sesión. <strong className="text-emerald-400">Nunca</strong> solicitamos ni tenemos acceso a tus correos de Gmail, archivos de Google Drive, Contactos ni Contraseñas.
+              </p>
+              <p>
+                <strong className="text-slate-200">Aislamiento en Firestore:</strong> Tus cálculos matemáticos y fórmulas guardadas se almacenan en una base de datos segura protegida por reglas de acceso donde nadie más puede ver tus datos.
+              </p>
+              <p>
+                <strong className="text-slate-200">Derecho a la Portabilidad y Eliminación:</strong> Puedes descargar una copia de todos tus cálculos en JSON o borrar definitivamente toda tu información de la nube con un solo clic.
+              </p>
+            </div>
+          </section>
         </div>
 
         {/* Footer */}

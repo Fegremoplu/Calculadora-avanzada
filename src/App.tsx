@@ -16,7 +16,17 @@ import { CalculusSolver } from './components/CalculusSolver';
 import { ProgrammerMode } from './components/ProgrammerMode';
 import { ConverterMode } from './components/ConverterMode';
 import { HelpModal } from './components/HelpModal';
+import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { User } from 'firebase/auth';
+import {
+  initAuthListener,
+  testFirestoreConnection,
+  saveHistoryItemToCloud,
+  loadHistoryFromCloud,
+  clearAllHistoryFromCloud,
+  savePreferencesToCloud
+} from './lib/firebase';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<CalculatorTab>('scientific');
@@ -42,11 +52,64 @@ export default function App() {
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(() => {
+    return typeof window !== 'undefined' && (
+      window.location.search.includes('privacy') ||
+      window.location.hash.includes('privacy')
+    );
+  });
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [livePreview, setLivePreview] = useState<string | null>(null);
+
+  // Firebase Auth and Cloud Sync state
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // Initialize Firebase and Cloud sync
+  useEffect(() => {
+    testFirestoreConnection();
+
+    const unsubscribe = initAuthListener(async user => {
+      setCurrentUser(user);
+      if (user) {
+        setIsSyncing(true);
+        try {
+          const cloudHistory = await loadHistoryFromCloud();
+          if (cloudHistory.length > 0) {
+            setHistory(prev => {
+              const existingIds = new Set(cloudHistory.map(item => item.id));
+              const uniqueLocal = prev.filter(item => !existingIds.has(item.id));
+              return [...cloudHistory, ...uniqueLocal].slice(0, 50);
+            });
+          }
+        } finally {
+          setIsSyncing(false);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSyncNow = async () => {
+    if (!currentUser) return;
+    setIsSyncing(true);
+    try {
+      const cloudHistory = await loadHistoryFromCloud();
+      if (cloudHistory.length > 0) {
+        setHistory(prev => {
+          const existingIds = new Set(cloudHistory.map(item => item.id));
+          const uniqueLocal = prev.filter(item => !existingIds.has(item.id));
+          return [...cloudHistory, ...uniqueLocal].slice(0, 50);
+        });
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Sync history to localStorage
   useEffect(() => {
@@ -160,6 +223,7 @@ export default function App() {
       angleUnit,
     };
     setHistory(prev => [newItem, ...prev.slice(0, 49)]);
+    saveHistoryItemToCloud(newItem);
     setExpression('');
   };
 
@@ -235,10 +299,17 @@ export default function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         soundEnabled={soundEnabled}
-        onToggleSound={() => setSoundEnabled(!soundEnabled)}
+        onToggleSound={() => {
+          const next = !soundEnabled;
+          setSoundEnabled(next);
+          savePreferencesToCloud({ angleUnit, numberFormat, soundEnabled: next });
+        }}
         onToggleHistory={() => setIsHistoryOpen(true)}
         historyCount={history.length}
         onOpenHelp={() => setIsHelpOpen(true)}
+        user={currentUser}
+        onSyncNow={handleSyncNow}
+        isSyncing={isSyncing}
       />
 
       {/* Main App Container */}
@@ -334,14 +405,44 @@ export default function App() {
           setIsHistoryOpen(false);
           setActiveTab('scientific');
         }}
-        onClearHistory={() => setHistory([])}
+        onClearHistory={() => {
+          clearAllHistoryFromCloud(history);
+          setHistory([]);
+        }}
       />
 
       {/* Help & Shortcuts Modal */}
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
 
+      {/* Privacy Policy Modal (Google Play Compliance) */}
+      <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
+
       {/* Offline Status Toast */}
       <OfflineIndicator />
+
+      {/* Footer / Privacy & Legal Links */}
+      <footer className="w-full max-w-5xl mx-auto mt-8 py-4 px-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-slate-500">
+        <div className="text-center sm:text-left">
+          <span>© 2026 Calculadora Científica Avanzada & Trazador 3D WebGL</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsPrivacyOpen(true)}
+            className="hover:text-cyan-400 underline underline-offset-2 transition-colors cursor-pointer"
+          >
+            Política de Privacidad (Google Play)
+          </button>
+          <span className="text-slate-700">•</span>
+          <a
+            href="/privacy.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-cyan-400 transition-colors"
+          >
+            Página Web Pública
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }

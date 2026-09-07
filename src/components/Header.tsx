@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { CalculatorTab } from '../types';
 import { PWAInstallButton } from './PWAInstallButton';
+import { CloudSyncStatus } from './CloudSyncStatus';
+import { User } from 'firebase/auth';
 
 interface HeaderProps {
   activeTab: CalculatorTab;
@@ -23,6 +25,9 @@ interface HeaderProps {
   onToggleHistory: () => void;
   historyCount: number;
   onOpenHelp: () => void;
+  user: User | null;
+  onSyncNow: () => void;
+  isSyncing: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -33,6 +38,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleHistory,
   historyCount,
   onOpenHelp,
+  user,
+  onSyncNow,
+  isSyncing,
 }) => {
   const tabs = [
     { id: 'scientific' as CalculatorTab, label: 'Científica', icon: Calculator },
@@ -91,6 +99,9 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Utility Controls */}
         <div className="flex items-center gap-1.5 self-end md:self-auto">
+          {/* Firebase Cloud Sync Status */}
+          <CloudSyncStatus user={user} onSyncNow={onSyncNow} isSyncing={isSyncing} />
+
           {/* In-App PWA Install Button */}
           <PWAInstallButton />
 

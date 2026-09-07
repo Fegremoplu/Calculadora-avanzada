@@ -1,0 +1,118 @@
+{
+  "entities": {
+    "UserPreference": {
+      "title": "UserPreference",
+      "description": "User preferences and settings for the scientific calculator",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth user ID"
+        },
+        "angleUnit": {
+          "type": "string",
+          "enum": ["DEG", "RAD", "GRAD"],
+          "description": "Selected default angle unit"
+        },
+        "numberFormat": {
+          "type": "string",
+          "enum": ["standard", "scientific", "fraction"],
+          "description": "Selected number display format"
+        },
+        "soundEnabled": {
+          "type": "boolean",
+          "description": "Haptic/auditory feedback toggle"
+        },
+        "updatedAt": {
+          "type": "number",
+          "description": "Unix timestamp in milliseconds"
+        }
+      },
+      "required": ["uid", "angleUnit", "numberFormat", "soundEnabled", "updatedAt"]
+    },
+    "CalculationHistory": {
+      "title": "CalculationHistory",
+      "description": "Record of a mathematical calculation stored in the cloud",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique history item identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase user ID"
+        },
+        "expression": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Mathematical formula expression"
+        },
+        "result": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Computed result"
+        },
+        "angleUnit": {
+          "type": "string",
+          "enum": ["DEG", "RAD", "GRAD"],
+          "description": "Angle mode used for evaluation"
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Timestamp in milliseconds"
+        }
+      },
+      "required": ["id", "userId", "expression", "result", "angleUnit", "timestamp"]
+    },
+    "CustomFormula": {
+      "title": "CustomFormula",
+      "description": "User saved mathematical 2D or 3D graph formula",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique formula identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase user ID"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Descriptive title for the formula"
+        },
+        "expression": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Mathematical expression (e.g. sin(x) or sin(sqrt(x^2+y^2)))"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["2d", "3d"],
+          "description": "Graph dimension type"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Creation timestamp in milliseconds"
+        }
+      },
+      "required": ["id", "userId", "name", "expression", "type", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserPreference",
+      "description": "Stores user calculator preferences"
+    },
+    "/users/{userId}/history/{historyId}": {
+      "schema": "CalculationHistory",
+      "description": "Stores individual calculation history records per user"
+    },
+    "/users/{userId}/formulas/{formulaId}": {
+      "schema": "CustomFormula",
+      "description": "Stores saved 2D/3D formulas per user"
+    }
+  }
+}
