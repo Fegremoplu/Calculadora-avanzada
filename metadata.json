@@ -1,0 +1,6 @@
+{
+  "name": "Calculadora Científica Avanzada",
+  "description": "Calculadora científica profesional de alta precisión con funciones trigonométricas, cálculo numérico, graficador interactivo 2D, conversor de unidades y modo programador.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
